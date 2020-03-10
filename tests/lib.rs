@@ -1,13 +1,13 @@
-extern crate pcap;
-extern crate libc;
-extern crate tempdir;
+use libc;
+use pcap_on_demand;
+use tempdir;
 
 use std::io;
 use std::ops::Add;
 use std::path::Path;
 use tempdir::TempDir;
 
-use pcap::{Active, Activated, Offline, Capture, Packet, PacketHeader, Linktype, Precision, Error};
+use pcap_on_demand::{Activated, Active, Capture, Error, Linktype, Offline, Packet, PacketHeader, Precision};
 
 #[test]
 fn read_packet_with_full_data() {
@@ -22,13 +22,14 @@ fn read_packet_with_truncated_data() {
 }
 
 fn capture_from_test_file(file_name: &str) -> Capture<Offline> {
+    unsafe { pcap_on_demand::load_pcap_library() };
     let path = Path::new("tests/data/").join(file_name);
     Capture::from_file(path).unwrap()
 }
 
 #[test]
 fn unify_activated() {
-	  #![allow(dead_code)]
+    #![allow(dead_code)]
     fn test1() -> Capture<Active> {
         loop {}
     }
@@ -37,11 +38,15 @@ fn unify_activated() {
         loop {}
     }
 
-    fn maybe(a: bool) -> Capture<Activated> {
-        if a { test1().into() } else { test2().into() }
+    fn maybe(a: bool) -> Capture<dyn Activated> {
+        if a {
+            test1().into()
+        } else {
+            test2().into()
+        }
     }
 
-    fn also_maybe(a: &mut Capture<Activated>) {
+    fn also_maybe(a: &mut Capture<dyn Activated>) {
         a.filter("whatever filter string, this won't be run anyway").unwrap();
     }
 }
@@ -54,26 +59,16 @@ pub struct Packets {
 
 impl Packets {
     pub fn new() -> Packets {
-        Packets {
-            headers: vec![],
-            data: vec![],
-        }
+        Packets { headers: vec![], data: vec![] }
     }
 
-    pub fn push(&mut self,
-                tv_sec: libc::time_t,
-                tv_usec: libc::suseconds_t,
-                caplen: u32,
-                len: u32,
-                data: &[u8]) {
+    pub fn push(&mut self, tv_sec: libc::time_t, tv_usec: libc::subseconds_t, caplen: u32, len: u32, data: &[u8]) {
+        use std::convert::TryInto;
         self.headers.push(PacketHeader {
-                              ts: libc::timeval {
-                                  tv_sec: tv_sec,
-                                  tv_usec: tv_usec,
-                              },
-                              caplen: caplen,
-                              len: len,
-                          });
+            ts: libc::timeval { tv_sec: tv_sec.try_into().unwrap(), tv_usec },
+            caplen,
+            len,
+        });
         self.data.push(data.to_vec());
     }
 
@@ -105,6 +100,7 @@ impl<'a> Add for &'a Packets {
 
 #[test]
 fn capture_dead_savefile() {
+    unsafe { pcap_on_demand::load_pcap_library() };
     let mut packets = Packets::new();
     packets.push(1460408319, 1234, 1, 1, &[1]);
     packets.push(1460408320, 4321, 1, 1, &[2]);
@@ -124,6 +120,7 @@ fn capture_dead_savefile() {
 #[test]
 #[cfg(feature = "pcap-savefile-append")]
 fn capture_dead_savefile_append() {
+    unsafe { pcap_on_demand::load_pcap_library() };
     let mut packets1 = Packets::new();
     packets1.push(1460408319, 1234, 1, 1, &[1]);
     packets1.push(1460408320, 4321, 1, 1, &[2]);
@@ -152,22 +149,25 @@ fn capture_dead_savefile_append() {
 #[test]
 #[cfg(not(windows))]
 fn test_raw_fd_api() {
+    unsafe { pcap_on_demand::load_pcap_library() };
     use std::fs::File;
-    use std::thread;
     use std::io::prelude::*;
     #[cfg(not(windows))]
-    use std::os::unix::io::{RawFd, FromRawFd};
+    use std::os::unix::io::{FromRawFd, RawFd};
+    use std::thread;
 
     // Create a total of more than 64K data (> max pipe buf size)
     const N_PACKETS: usize = 64;
     let data: Vec<u8> = (0..191).cycle().take(N_PACKETS * 1024).collect();
     let mut packets = Packets::new();
     for i in 0..N_PACKETS {
-        packets.push(1460408319 + i as libc::time_t,
-                     1000 + i as libc::suseconds_t,
-                     1024,
-                     1024,
-                     &data[i * 1024..(i + 1) * 1024]);
+        packets.push(
+            1460408319 + i as libc::time_t,
+            1000 + i as libc::suseconds_t,
+            1024,
+            1024,
+            &data[i * 1024..(i + 1) * 1024],
+        );
     }
 
     let dir = TempDir::new("pcap").unwrap();
@@ -179,15 +179,12 @@ fn test_raw_fd_api() {
     packets.foreach(|p| save.write(p));
     drop(save);
 
-    assert_eq!(Capture::from_raw_fd(-999).err().unwrap(),
-               Error::InvalidRawFd);
+    assert_eq!(Capture::from_raw_fd(-999).err().unwrap(), Error::InvalidRawFd);
     #[cfg(feature = "pcap-fopen-offline-precision")]
     {
-        assert_eq!(Capture::from_raw_fd_with_precision(-999, Precision::Micro).err().unwrap(),
-                   Error::InvalidRawFd);
+        assert_eq!(Capture::from_raw_fd_with_precision(-999, Precision::Micro).err().unwrap(), Error::InvalidRawFd);
     }
-    assert_eq!(cap.savefile_raw_fd(-999).err().unwrap(),
-               Error::InvalidRawFd);
+    assert_eq!(cap.savefile_raw_fd(-999).err().unwrap(), Error::InvalidRawFd);
 
     // Create an unnamed pipe
     let mut pipe = [0 as libc::c_int; 2];
@@ -259,6 +256,7 @@ fn test_raw_fd_api() {
 
 #[test]
 fn test_linktype() {
+    unsafe { pcap_on_demand::load_pcap_library() };
     let capture = capture_from_test_file("packet_snaplen_65535.pcap");
     let linktype = capture.get_datalink();
 
@@ -269,6 +267,7 @@ fn test_linktype() {
 
 #[test]
 fn test_error() {
+    unsafe { pcap_on_demand::load_pcap_library() };
     let mut capture = capture_from_test_file("packet_snaplen_65535.pcap");
     // Trying to get stats from offline capture should error.
     assert!(capture.stats().err().is_some());

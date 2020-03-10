@@ -1,6 +1,10 @@
-# pcap [![Build status](https://api.travis-ci.org/ebfull/pcap.svg)](https://travis-ci.org/ebfull/pcap) [![Crates.io](https://img.shields.io/crates/v/pcap.svg)](https://crates.io/crates/pcap) [![Docs.rs](https://docs.rs/pcap/badge.svg)](https://docs.rs/pcap) #
+# pcap_on_demand [![Build status](https://api.travis-ci.org/MalteSchledjewski/pcap-on-demand.svg)](https://travis-ci.org/MalteSchledjewski/pcap-on-demand) [![Crates.io](https://img.shields.io/crates/v/pcap-on-demand.svg)](https://crates.io/crates/pcap-on-demand) [![Docs.rs](https://docs.rs/pcap-on-demand/badge.svg)](https://docs.rs/pcap-on-demand) #
 
-### [Documentation](https://docs.rs/pcap)
+This is a fork of the [pcap](https://github.com/ebfull/pcap) crate.  
+This crate load the pcap library on demand.  
+It therefore gives even less guarantees.
+
+### [Documentation](https://docs.rs/pcap-on-demand)
 
 This is a **Rust language** crate for accessing the packet sniffing capabilities of pcap (or wpcap on Windows).
 If you need anything feel free to post an issue or submit a pull request!

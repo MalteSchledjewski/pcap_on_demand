@@ -1,16 +1,17 @@
 [package]
 
-name = "pcap"
-version = "0.7.0"
-authors = ["Sean Bowe <ewillbefull@gmail.com>"]
-description = "A packet capture API around pcap/wpcap"
+name = "pcap_on_demand"
+version = "0.1.0"
+authors = ["Malte Schledjewski <schledjewski@react.uni-saarland.de>","Sean Bowe <ewillbefull@gmail.com>"]
+description = "A packet capture API around pcap/wpcap that loads pcap/wpcap on demand"
 keywords = ["pcap", "packet", "sniffing"]
 readme = "README.md"
-homepage = "https://github.com/ebfull/pcap"
-repository = "https://github.com/ebfull/pcap"
-documentation = "https://docs.rs/pcap"
+homepage = "https://github.com/MalteSchledjewski/pcap_on_demand"
+repository = "https://github.com/MalteSchledjewski/pcap_on_demand"
+documentation = "https://docs.rs/pcap_on_demand"
 license = "MIT OR Apache-2.0"
 build = "build.rs"
+edition = "2018"
 
 [dependencies]
 libc = "0.2"
@@ -18,6 +19,7 @@ clippy = { version = "0.0.*", optional = true }
 mio = { version = "0.6", optional = true }
 tokio-core = { version = "0.1", optional = true }
 futures = { version = "0.1", optional = true }
+libloading = "0.5"
 
 [dev-dependencies]
 tempdir = "0.3"
