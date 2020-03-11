@@ -91,7 +91,15 @@ fn load_dll() -> Result<libloading::Library, Box<dyn std::error::Error>> {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn load_dll() -> Result<libloading::Library, Box<dyn std::error::Error>> {
+    match libloading::Library::new("libpcap.dylib") {
+        Ok(lib) => Ok(lib),
+        Err(err) => Err(Box::new(err)),
+    }
+}
+
+#[cfg(not(any(windows,target_os = "macos")))]
 fn load_dll() -> Result<libloading::Library, Box<dyn std::error::Error>> {
     match libloading::Library::new("libpcap.so") {
         Ok(lib) => Ok(lib),
