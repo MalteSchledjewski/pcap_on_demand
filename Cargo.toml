@@ -42,7 +42,7 @@ tokio = ["mio", "tokio-core", "futures"]
 full = ["pcap-savefile-append", "pcap-fopen-offline-precision", "tokio"]
 
 [lib]
-name = "pcap"
+name = "pcap_on_demand"
 
 [[example]]
 name = "listenlocalhost"
