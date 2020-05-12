@@ -103,9 +103,12 @@ fn load_dll() -> Result<libloading::Library, Box<dyn std::error::Error>> {
 fn load_dll() -> Result<libloading::Library, Box<dyn std::error::Error>> {
     match libloading::Library::new("libpcap.so") {
         Ok(lib) => Ok(lib),
-        Err(err) => match libloading::Library::new("libpcap.so.1") {
+        Err(_err) => match libloading::Library::new("libpcap.so.1") {
             Ok(lib) => Ok(lib),
-            Err(err) => Err(Box::new(err)),
+            Err(_err) => match libloading::Library::new("/usr/lib/x86_64-linux-gnu/libpcap.so") {
+                Ok(lib) => Ok(lib),
+                Err(err) => Err(Box::new(err)),
+            },
         },
     }
 }
